@@ -1,0 +1,14 @@
+src/
+tests/
+*.test.ts
+*.spec.ts
+tsconfig.json
+.eslintrc*
+eslint.config*
+.prettierrc*
+.prettierignore
+vitest.config*
+.github/
+docs/
+CHANGELOG.md
+SECURITY.md
