@@ -16,8 +16,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-      - run: npm ci
+      # npm install (não `npm ci`) — tolerante quando lockfile ainda não foi commitado.
+      # Quando o lockfile aparecer numa task posterior, npm install ainda funciona.
+      - run: npm install
       - run: npm run lint --if-present
       - run: npm run typecheck --if-present
+      - run: npm run build --if-present
       - run: npm test --if-present
