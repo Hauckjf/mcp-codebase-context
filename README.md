@@ -4,7 +4,7 @@
 
 > Give Claude agents full, structured access to any local codebase — without pasting files.
 
-MCP server (stdio + HTTP/SSE) that exposes a local codebase as structured tools for Claude agents: symbol search via ripgrep, gitignore-aware file tree, git blame and recent-change parsing, dependency graph from package manifests. All tool outputs are Zod-validated JSON. On startup, the server validates that ripgrep is available in PATH and exits w
+MCP server (stdio + HTTP/SSE) that exposes a local codebase as structured tools for Claude agents: symbol search via ripgrep, gitignore-aware file tree, git blame and recent-change parsing, dependency graph from package manifests. All tool outputs are Zod-validated JSON. On startup, the server validates that ripgrep is available in PATH and exits with code 1 if missing.
 
 ## Table of contents
 
@@ -18,7 +18,7 @@ MCP server (stdio + HTTP/SSE) that exposes a local codebase as structured tools 
 
 ## About
 
-MCP server (stdio + HTTP/SSE) that exposes a local codebase as structured tools for Claude agents: symbol search via ripgrep, gitignore-aware file tree, git blame and recent-change parsing, dependency graph from package manifests. All tool outputs are Zod-validated JSON. On startup, the server validates that ripgrep is available in PATH and exits w
+MCP server (stdio + HTTP/SSE) that exposes a local codebase as structured tools for Claude agents: symbol search via ripgrep, gitignore-aware file tree, git blame and recent-change parsing, dependency graph from package manifests. All tool outputs are Zod-validated JSON. On startup, the server validates that ripgrep is available in PATH and exits with code 1 if missing.
 
 **What this demonstrates**
 
@@ -48,7 +48,68 @@ _Examples coming with the first feature release._
 
 ## Architecture
 
-_High-level diagram and decision records in `docs/`._
+### Request flow
+
+Every tool call travels from the Claude agent through the transport layer into a central dispatcher, which routes to one of five tool handlers. Each handler's output is validated against a Zod schema before being serialised to JSON and returned to the agent.
+
+```mermaid
+flowchart LR
+    agent[Claude Agent]
+    transport["Transport Layer\n(stdio | HTTP/SSE)"]
+    server[MCPCodebaseServer]
+    dispatcher[ToolDispatcher]
+    ss[search_symbols]
+    ft[file_tree]
+    gb[git_blame]
+    rc[git_recent_changes]
+    dg[dependency_graph]
+    zod[ZodSchema]
+    json[JSON]
+
+    agent --> transport
+    transport --> server
+    server --> dispatcher
+    dispatcher --> ss
+    dispatcher --> ft
+    dispatcher --> gb
+    dispatcher --> rc
+    dispatcher --> dg
+    ss --> zod
+    ft --> zod
+    gb --> zod
+    rc --> zod
+    dg --> zod
+    zod --> json
+```
+
+### Startup sequence
+
+Before accepting any connections the server performs two preflight checks — ripgrep and git must both be discoverable in `PATH`. Only after all five tools are registered does the chosen transport begin accepting requests.
+
+```mermaid
+sequenceDiagram
+    participant main
+    participant rg as ripgrep (PATH)
+    participant git as git (PATH)
+    participant srv as MCPCodebaseServer
+    participant tr as Transport
+
+    main->>rg: validate binary in PATH
+    rg-->>main: ok (or exit 1)
+    main->>git: validate binary in PATH
+    git-->>main: ok (or exit 1)
+    main->>srv: register search_symbols
+    main->>srv: register file_tree
+    main->>srv: register git_blame
+    main->>srv: register git_recent_changes
+    main->>srv: register dependency_graph
+    main->>tr: connect()
+    tr-->>main: server ready
+```
+
+### Choosing a transport
+
+Use **stdio** when running the server as a local subprocess — it is the correct choice for Claude Desktop (`claude_desktop_config.json`) and any CLI agent on the same machine, because the parent process owns the server's lifetime and communication happens over standard streams with zero network overhead. Use **HTTP/SSE** when the server must be reachable from a remote agent, a container, or multiple clients simultaneously; the SSE channel allows the server to stream partial results back without holding a long-polling connection, and each HTTP session keeps its own root-directory scope so concurrent requests cannot contaminate each other's file-tree or symbol-search results.
 
 ## Definition of done
 
@@ -66,9 +127,3 @@ See [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md).
 ## License
 
 [MIT](LICENSE)
-
----
-
-<sub>Part of [@Hauckjf](https://github.com/Hauckjf)'s portfolio.</sub>
-
-<sub>Built with [Claude Code](https://claude.com/claude-code) — reviewed, tested, and maintained by [@Hauckjf](https://github.com/Hauckjf).</sub>
