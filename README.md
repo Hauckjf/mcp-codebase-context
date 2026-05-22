@@ -10,9 +10,9 @@ MCP server (stdio + HTTP/SSE) that exposes a local codebase as structured tools 
 
 - [About](#about)
 - [Tech](#tech)
+- [Architecture](#architecture)
 - [Installation](#installation)
 - [Usage](#usage)
-- [Architecture](#architecture)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -34,6 +34,63 @@ MCP server (stdio + HTTP/SSE) that exposes a local codebase as structured tools 
 
 TypeScript · Node.js · MCP SDK · Zod · ripgrep
 
+## Architecture
+
+### Request flow
+
+Every tool call travels from the Claude agent through an MCP client and the chosen transport into the server, which routes to one of five tool handlers. Each handler delegates to a backend process — ripgrep subprocess, native `fs` walk, or git CLI — and the raw output is Zod-validated before being returned as structured JSON to the agent.
+
+```mermaid
+flowchart LR
+    agent[Claude Agent]
+    client[MCP Client]
+    transport["stdio | HTTP/SSE"]
+    server[MCP Server]
+    ss[symbol_search]
+    ft[file_tree]
+    gb[git_blame]
+    rc[recent_changes]
+    dg[dependency_graph]
+    rg[ripgrep subprocess]
+    fs[fs walk]
+    git[git CLI]
+
+    agent --> client
+    client --> transport
+    transport --> server
+    server --> ss & ft & gb & rc & dg
+    ss --> rg
+    ft --> fs
+    gb --> git
+    rc --> git
+    dg --> fs
+```
+
+### Tool call round-trip
+
+A single tool call passes through two Zod checkpoints — input params are validated before any subprocess is spawned, and raw subprocess output is validated before it leaves the server. Both the agent's requests and the process output are type-safe at every boundary; malformed subprocess output produces a typed error object rather than an unhandled exception.
+
+```mermaid
+sequenceDiagram
+    participant client as MCP Client
+    participant server as MCP Server
+    participant zod as Zod Validator
+    participant proc as Subprocess (rg / git / fs)
+
+    client->>server: tool call (name + params)
+    server->>zod: validate input schema
+    zod-->>server: typed params
+    server->>proc: spawn subprocess / fs walk
+    proc-->>server: raw stdout / buffer
+    server->>zod: validate output schema
+    zod-->>server: typed result
+    server-->>client: structured JSON response
+```
+
+### Choosing a transport
+
+Use **stdio** when running the server as a local subprocess — it is the correct choice for Claude Desktop (`claude_desktop_config.json`) and any CLI agent on the same machine, because the parent process owns the server's lifetime and communication happens over standard streams with zero network overhead. Use **HTTP/SSE** when the server must be reachable from a remote agent, a container, or multiple clients simultaneously; the SSE channel allows the server to stream partial results back without holding a long-polling connection, and each HTTP session keeps its own root-directory scope so concurrent requests cannot contaminate each other's file-tree or symbol-search results.
+
 ## Installation
 
 ```bash
@@ -45,71 +102,6 @@ cd mcp-codebase-context
 ## Usage
 
 _Examples coming with the first feature release._
-
-## Architecture
-
-### Request flow
-
-Every tool call travels from the Claude agent through the transport layer into a central dispatcher, which routes to one of five tool handlers. Each handler's output is validated against a Zod schema before being serialised to JSON and returned to the agent.
-
-```mermaid
-flowchart LR
-    agent[Claude Agent]
-    transport["Transport Layer\n(stdio | HTTP/SSE)"]
-    server[MCPCodebaseServer]
-    dispatcher[ToolDispatcher]
-    ss[search_symbols]
-    ft[file_tree]
-    gb[git_blame]
-    rc[git_recent_changes]
-    dg[dependency_graph]
-    zod[ZodSchema]
-    json[JSON]
-
-    agent --> transport
-    transport --> server
-    server --> dispatcher
-    dispatcher --> ss
-    dispatcher --> ft
-    dispatcher --> gb
-    dispatcher --> rc
-    dispatcher --> dg
-    ss --> zod
-    ft --> zod
-    gb --> zod
-    rc --> zod
-    dg --> zod
-    zod --> json
-```
-
-### Startup sequence
-
-Before accepting any connections the server performs two preflight checks — ripgrep and git must both be discoverable in `PATH`. Only after all five tools are registered does the chosen transport begin accepting requests.
-
-```mermaid
-sequenceDiagram
-    participant main
-    participant rg as ripgrep (PATH)
-    participant git as git (PATH)
-    participant srv as MCPCodebaseServer
-    participant tr as Transport
-
-    main->>rg: validate binary in PATH
-    rg-->>main: ok (or exit 1)
-    main->>git: validate binary in PATH
-    git-->>main: ok (or exit 1)
-    main->>srv: register search_symbols
-    main->>srv: register file_tree
-    main->>srv: register git_blame
-    main->>srv: register git_recent_changes
-    main->>srv: register dependency_graph
-    main->>tr: connect()
-    tr-->>main: server ready
-```
-
-### Choosing a transport
-
-Use **stdio** when running the server as a local subprocess — it is the correct choice for Claude Desktop (`claude_desktop_config.json`) and any CLI agent on the same machine, because the parent process owns the server's lifetime and communication happens over standard streams with zero network overhead. Use **HTTP/SSE** when the server must be reachable from a remote agent, a container, or multiple clients simultaneously; the SSE channel allows the server to stream partial results back without holding a long-polling connection, and each HTTP session keeps its own root-directory scope so concurrent requests cannot contaminate each other's file-tree or symbol-search results.
 
 ## Definition of done
 
