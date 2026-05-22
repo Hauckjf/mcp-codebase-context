@@ -1,40 +1,17 @@
-import { parseArgs } from "node:util";
-import { validateDependencies } from "./startup.js";
-import { createServer } from "./server.js";
-import { createStdioTransport } from "./transport/stdio.js";
+#!/usr/bin/env node
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { checkDependencies } from './preflight.js';
+import { createServer } from './server.js';
 
-const { values } = parseArgs({
-  args: process.argv.slice(2),
-  options: {
-    transport: { type: "string" },
-  },
-  strict: false,
-});
-
-const transportName: string = values.transport ?? "stdio";
-
-if (transportName !== "stdio") {
-  process.stderr.write(`Unknown transport: ${transportName}. Supported: stdio\n`);
-  process.exit(1);
-}
-
-async function main(): Promise<void> {
-  await validateDependencies();
-
-  const transport = createStdioTransport();
-  const server = createServer(transport, process.cwd());
-
-  process.on("SIGTERM", () => {
-    server
-      .close()
-      .catch(() => undefined)
-      .finally(() => process.exit(0));
-  });
-
-  await server.start();
+export async function main(): Promise<void> {
+  await checkDependencies();
+  const server = createServer();
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
 }
 
 main().catch((err: unknown) => {
-  process.stderr.write(String(err) + "\n");
+  const message = err instanceof Error ? err.message : String(err);
+  process.stderr.write(`${message}\n`);
   process.exit(1);
 });

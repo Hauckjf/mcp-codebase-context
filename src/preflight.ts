@@ -1,51 +1,45 @@
 import { execa } from 'execa';
 
-interface BinarySpec {
-  readonly cmd: string;
-  readonly label: string;
-  readonly installHint: string;
+/**
+ * Minimal exec interface — compatible with execa and injectable in tests.
+ */
+export type ExecFn = (file: string, args?: readonly string[]) => Promise<unknown>;
+
+/**
+ * Verify required external binaries exist before the server starts.
+ *
+ * @param exec - Process executor, defaulting to execa. Override in tests to
+ *               inject a mock without patching module imports.
+ */
+export async function checkDependencies(
+  exec: ExecFn = (file, args) => execa(file, args ?? []),
+): Promise<void> {
+  await assertInPath(
+    exec,
+    'rg',
+    'ripgrep not found in PATH \u2014 install: https://github.com/BurntSushi/ripgrep#installation',
+  );
+  await assertInPath(
+    exec,
+    'git',
+    'git not found in PATH \u2014 install: https://git-scm.com/downloads',
+  );
 }
 
-const REQUIRED_BINARIES: readonly BinarySpec[] = [
-  {
-    cmd: 'rg',
-    label: 'ripgrep',
-    installHint: 'https://github.com/BurntSushi/ripgrep#installation',
-  },
-  {
-    cmd: 'git',
-    label: 'git',
-    installHint: 'https://git-scm.com/downloads',
-  },
-];
-
-async function checkBinary(cmd: string): Promise<boolean> {
+async function assertInPath(exec: ExecFn, cmd: string, notFoundMsg: string): Promise<void> {
   try {
-    await execa(cmd, ['--version'], { stdio: 'pipe' });
-    return true;
-  } catch {
-    return false;
+    await exec(cmd, ['--version']);
+  } catch (err: unknown) {
+    if (isENOENT(err)) throw new Error(notFoundMsg);
+    throw err;
   }
 }
 
-export async function runPreflight(): Promise<void> {
-  const results = await Promise.all(
-    REQUIRED_BINARIES.map(async (spec) => ({
-      ...spec,
-      available: await checkBinary(spec.cmd),
-    }))
+function isENOENT(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    (err as { code: unknown }).code === 'ENOENT'
   );
-
-  const missing = results.filter((r) => !r.available);
-  if (missing.length === 0) return;
-
-  for (const { label, installHint } of missing) {
-    process.stderr.write(`  missing: ${label} — ${installHint}\n`);
-  }
-  process.stderr.write(
-    `\n[mcp-codebase-context] startup aborted: ${
-      missing.map((m) => m.label).join(', ')
-    } not found in PATH\n`
-  );
-  process.exit(1);
 }
