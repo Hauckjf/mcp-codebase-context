@@ -1,7 +1,7 @@
 {
   "name": "mcp-codebase-context",
   "version": "0.1.0",
-  "description": "Exposes a local codebase as structured tools for Claude agents — symbol search, file tree, git history, and dependency graphs.",
+  "description": "Exposes a local codebase as structured tools for Claude agents \u2013 symbol search, file tree, git history, and dependency graphs.",
   "type": "module",
   "exports": {
     ".": {
@@ -39,8 +39,8 @@
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
-    "@typescript-eslint/eslint-plugin": "^6.13.2",
-    "@typescript-eslint/parser": "^6.13.2",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
     "@vitest/coverage-v8": "^1.0.4",
     "eslint": "^9.0.0",
     "typescript": "^5.3.3",
