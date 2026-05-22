@@ -2,14 +2,11 @@ import tsPlugin from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
 import importPlugin from 'eslint-plugin-import';
 
-// @typescript-eslint v8: each named config is an array of flat-config objects
-// (some carry plugins/languageOptions, others carry rules). Merge rules across
-// all elements so the single-config-object structure below still works.
-const mergeConfigRules = (configs) =>
-  Object.assign({}, ...configs.map((c) => c.rules ?? {}));
-
 /** @type {import('eslint').Linter.FlatConfig[]} */
 export default [
+  // v8 exports configs as flat-config arrays; spread them directly
+  ...tsPlugin.configs['recommended'],
+  ...tsPlugin.configs['strict'],
   {
     files: ['src/**/*.ts'],
     languageOptions: {
@@ -19,12 +16,11 @@ export default [
       },
     },
     plugins: {
-      '@typescript-eslint': tsPlugin,
+      // @typescript-eslint is already registered by the spreads above;
+      // only the import plugin needs to be added here
       import: importPlugin,
     },
     rules: {
-      ...mergeConfigRules(tsPlugin.configs['recommended']),
-      ...mergeConfigRules(tsPlugin.configs['strict']),
       '@typescript-eslint/no-floating-promises': 'error',
       'import/no-cycle': 'error',
     },
