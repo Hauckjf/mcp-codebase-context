@@ -4,9 +4,10 @@ import importPlugin from 'eslint-plugin-import';
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 export default [
-  // v8 exports configs as flat-config arrays; spread them directly
-  ...tsPlugin.configs['recommended'],
-  ...tsPlugin.configs['strict'],
+  // @typescript-eslint/eslint-plugin v8 exports each config as a single flat-config
+  // object, not an array — use as plain array elements, not spreads
+  tsPlugin.configs['recommended'],
+  tsPlugin.configs['strict'],
   {
     files: ['src/**/*.ts'],
     languageOptions: {
@@ -16,8 +17,8 @@ export default [
       },
     },
     plugins: {
-      // @typescript-eslint is already registered by the spreads above;
-      // only the import plugin needs to be added here
+      // @typescript-eslint already registered by the configs above;
+      // only import plugin needs to be added here
       import: importPlugin,
     },
     rules: {
