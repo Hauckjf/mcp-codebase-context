@@ -1,60 +1,9 @@
 {
   "name": "mcp-codebase-context",
   "version": "0.1.0",
-  "description": "MCP server exposing a local codebase as structured tools for Claude agents — symbol search, file tree, git history, and dependency graphs",
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "bin": {
-    "mcp-codebase-context": "./dist/index.js"
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
-  "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "lint": "eslint src tests",
-    "start": "node dist/index.js",
-    "prepublishOnly": "npm run typecheck && npm run build"
-  },
-  "keywords": [
-    "mcp",
-    "model-context-protocol",
-    "claude",
-    "anthropic",
-    "codebase",
-    "ripgrep",
-    "developer-tools"
-  ],
-  "author": "Hauckjf",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Hauckjf/mcp-codebase-context.git"
-  },
-  "bugs": {
-    "url": "https://github.com/Hauckjf/mcp-codebase-context/issues"
-  },
-  "homepage": "https://github.com/Hauckjf/mcp-codebase-context#readme",
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "execa": "^9.4.0",
-    "ignore": "^5.3.0",
-    "zod": "^3.22.0"
-  },
+  ...
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@vitest/coverage-v8": "^2.0.0",
-    "eslint": "^9.0.0",
-    "typescript": "^5.4.0",
-    "vitest": "^2.0.0"
-  },
-  "engines": {
-    "node": ">=20.0.0"
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    ...
   }
 }
