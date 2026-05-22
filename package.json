@@ -1,35 +1,26 @@
 {
   "name": "mcp-codebase-context",
   "version": "0.1.0",
-  "description": "MCP server exposing a local codebase as structured tools for Claude agents — symbol search, file tree, git history, and dependency graphs",
+  "description": "Exposes a local codebase as structured tools for Claude agents — symbol search, file tree, git history, and dependency graphs.",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "bin": {
-    "mcp-codebase-context": "./dist/index.js"
+  "exports": {
+    ".": {
+      "import": "./dist/index.js"
+    }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
     "lint": "eslint src tests",
-    "start": "node dist/index.js",
-    "prepublishOnly": "npm run typecheck && npm run build"
+    "start": "node dist/index.js"
   },
   "keywords": [
     "mcp",
-    "model-context-protocol",
-    "claude",
-    "anthropic",
     "codebase",
-    "ripgrep",
-    "developer-tools"
+    "context",
+    "claude"
   ],
   "author": "Hauckjf",
   "license": "MIT",
@@ -37,10 +28,9 @@
     "type": "git",
     "url": "git+https://github.com/Hauckjf/mcp-codebase-context.git"
   },
-  "bugs": {
-    "url": "https://github.com/Hauckjf/mcp-codebase-context/issues"
+  "engines": {
+    "node": ">=20.0.0"
   },
-  "homepage": "https://github.com/Hauckjf/mcp-codebase-context#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "execa": "^9.4.0",
@@ -48,16 +38,12 @@
     "zod": "^3.22.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@typescript-eslint/eslint-plugin": "^8.0.0",
-    "@typescript-eslint/parser": "^8.0.0",
-    "@vitest/coverage-v8": "^2.0.0",
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.2",
+    "@typescript-eslint/parser": "^6.13.2",
+    "@vitest/coverage-v8": "^1.0.4",
     "eslint": "^9.0.0",
-    "eslint-plugin-import": "^2.29.1",
-    "typescript": "^5.4.0",
-    "vitest": "^2.0.0"
-  },
-  "engines": {
-    "node": ">=20.0.0"
+    "typescript": "^5.3.3",
+    "vitest": "^1.0.4"
   }
 }
