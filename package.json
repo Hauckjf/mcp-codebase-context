@@ -1,52 +1,60 @@
 {
   "name": "mcp-codebase-context",
   "version": "0.1.0",
-  "description": "MCP server exposing a local codebase as structured tools for Claude agents",
+  "description": "MCP server exposing a local codebase as structured tools for Claude agents — symbol search, file tree, git history, and dependency graphs",
   "type": "module",
-  "engines": {
-    "node": ">=18"
-  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "bin": {
-    "mcp-codebase-context": "dist/index.js"
+    "mcp-codebase-context": "./dist/index.js"
   },
-  "exports": "./dist/index.js",
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "lint": "eslint src"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "execa": "^9.0.0",
-    "zod": "^3.23.8"
-  },
-  "devDependencies": {
-    "@types/node": "^20.14.0",
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@typescript-eslint/parser": "^7.18.0",
-    "@vitest/coverage-v8": "^2.1.0",
-    "eslint": "^8.57.0",
-    "eslint-plugin-import": "^2.29.1",
-    "prettier": "^3.3.3",
-    "typescript": "^5.5.4",
-    "vitest": "^2.1.0"
+    "lint": "eslint src tests",
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run typecheck && npm run build"
   },
   "keywords": [
     "mcp",
+    "model-context-protocol",
     "claude",
+    "anthropic",
     "codebase",
-    "context",
-    "ai",
+    "ripgrep",
     "developer-tools"
   ],
+  "author": "Hauckjf",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Hauckjf/mcp-codebase-context.git"
+    "url": "git+https://github.com/Hauckjf/mcp-codebase-context.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Hauckjf/mcp-codebase-context/issues"
+  },
+  "homepage": "https://github.com/Hauckjf/mcp-codebase-context#readme",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "execa": "^9.4.0",
+    "ignore": "^5.3.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@vitest/coverage-v8": "^2.0.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }
