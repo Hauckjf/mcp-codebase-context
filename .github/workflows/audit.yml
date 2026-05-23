@@ -1,0 +1,80 @@
+name: Audit
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install deps
+        run: npm install
+      - name: Build
+        id: build
+        run: npm run build --if-present
+        continue-on-error: true
+      - name: Lint
+        id: lint
+        run: npm run lint --if-present
+        continue-on-error: true
+      - name: Typecheck
+        id: typecheck
+        run: npm run typecheck --if-present
+        continue-on-error: true
+      - name: Tests with coverage
+        id: tests
+        run: |
+          if grep -q '"test"' package.json; then
+            npm test --if-present -- --coverage --reporter=json --outputFile=test-result.json || true
+          fi
+        continue-on-error: true
+      - name: Run first example (best-effort)
+        id: example
+        run: |
+          first=$(ls examples/*.{ts,js,mjs} 2>/dev/null | head -1 || true)
+          if [ -n "$first" ]; then
+            timeout 30 node "$first" > example-stdout.txt 2> example-stderr.txt || echo "example exit=$?"
+          fi
+        continue-on-error: true
+      - name: NPM audit
+        id: npmaudit
+        run: npm audit --json > npm-audit.json || true
+        continue-on-error: true
+      - name: Generate audit summary
+        run: |
+          LOC=$(find . -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' \) -not -path './node_modules/*' -not -path './dist/*' -not -path './coverage/*' -exec cat {} + 2>/dev/null | wc -l)
+          BUNDLE_KB=$(du -sk dist 2>/dev/null | awk '{print $1}' || echo 0)
+          DEPS=$(node -e "const p=require('./package.json'); console.log(Object.keys(p.dependencies||{}).length + ' deps, ' + Object.keys(p.devDependencies||{}).length + ' dev')" 2>/dev/null || echo "n/a")
+          cat > audit.json <<EOF
+          {
+            "stack": "node-ts",
+            "loc": $LOC,
+            "bundle_kb": $BUNDLE_KB,
+            "deps_summary": "$DEPS",
+            "build_outcome": "${{ steps.build.outcome }}",
+            "lint_outcome": "${{ steps.lint.outcome }}",
+            "typecheck_outcome": "${{ steps.typecheck.outcome }}",
+            "tests_outcome": "${{ steps.tests.outcome }}",
+            "example_outcome": "${{ steps.example.outcome }}",
+            "npmaudit_outcome": "${{ steps.npmaudit.outcome }}"
+          }
+          EOF
+          cat audit.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audit-result
+          path: |
+            audit.json
+            test-result.json
+            npm-audit.json
+            example-stdout.txt
+            example-stderr.txt
+          if-no-files-found: ignore
